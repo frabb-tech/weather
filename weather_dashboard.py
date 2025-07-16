@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from datetime import datetime
 
-API_KEY = "17badf0db44e16808ff58e825a3d163b"
+API_KEY = "148478050339e068345d626466699765"
 CITIES = {
     "Beirut": "LB",
     "Amman": "JO",
