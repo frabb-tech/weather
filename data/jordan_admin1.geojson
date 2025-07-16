@@ -1,0 +1,11 @@
+{
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "properties": { "name": "Amman" },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[35.85, 31.95], [35.90, 31.95], [35.90, 32.00], [35.85, 32.00], [35.85, 31.95]]]
+    }
+  }]
+}

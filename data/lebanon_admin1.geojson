@@ -1,0 +1,11 @@
+{
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "properties": { "name": "Beirut" },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[[35.48, 33.87], [35.51, 33.87], [35.51, 33.90], [35.48, 33.90], [35.48, 33.87]]]
+    }
+  }]
+}
