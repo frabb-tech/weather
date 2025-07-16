@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from prophet import Prophet
 
-API_KEY = st.secrets["api"]["openweathermap_key"]
+API_KEY = "17badf0db44e16808ff58e825a3d163b"
 CITIES = {
     "Beirut": "LB",
     "Amman": "JO"
