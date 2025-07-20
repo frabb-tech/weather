@@ -1,22 +1,23 @@
 import streamlit as st
 import requests
 import pandas as pd
-import plotly.express as px
-import json
+import plotly.graph_objs as go
 from datetime import datetime
 from prophet import Prophet
+import io
 
 API_KEY = st.secrets["api"]["openweathermap_key"]
 CITIES = {
     "Beirut": "LB",
-    "Amman": "JO"
+    "Amman": "JO",
+    "Damascus": "SY",
+    "Baghdad": "IQ",
+    "Kabul": "AF",
+    "Ankara": "TR",
+    "Yerevan": "AM",
+    "Sarajevo": "BA",
+    "Ramallah": "PS"
 }
-
-# Load admin1 GeoJSON files
-with open("data/lebanon_admin1.geojson", "r") as f:
-    lebanon_geo = json.load(f)
-with open("data/jordan_admin1.geojson", "r") as f:
-    jordan_geo = json.load(f)
 
 @st.cache_data
 def get_forecast(city, country_code):
@@ -31,62 +32,60 @@ def get_forecast(city, country_code):
                 "datetime": datetime.utcfromtimestamp(entry["dt"]),
                 "temperature": entry["main"]["temp"],
                 "precipitation": entry.get("rain", {}).get("3h", 0),
-                "weather": entry["weather"][0]["description"],
-                "city": city
+                "humidity": entry["main"]["humidity"],
+                "weather": entry["weather"][0]["description"]
             })
         return pd.DataFrame(parsed)
     else:
         return pd.DataFrame()
 
-st.title("HEWRI Weather Dashboard V3 — Admin1 Map + AI + Automation Ready")
+st.title("HEWRI Weather Forecast Dashboard V2")
 
-# View selection
-view = st.radio("Select View", ["City Forecast", "Admin1 Map"])
-selected_city = st.selectbox("City", list(CITIES.keys()))
-
+selected_city = st.selectbox("Select a City", list(CITIES.keys()))
 df = get_forecast(selected_city, CITIES[selected_city])
 
 if df.empty:
-    st.error("No data available")
+    st.error("Could not retrieve data. Please check API or city.")
 else:
-    if view == "City Forecast":
-        st.subheader(f"{selected_city} 7-Day Forecast")
-        st.line_chart(df.set_index("datetime")[["temperature", "precipitation"]])
+    st.subheader(f"🌡 7-Day Temperature & Precipitation Forecast: {selected_city}")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df['datetime'], y=df['temperature'],
+                             mode='lines+markers', name='Temperature'))
+    fig.add_trace(go.Bar(x=df['datetime'], y=df['precipitation'],
+                         name='Precipitation', yaxis='y2'))
 
-        prophet_df = df[['datetime', 'temperature']].rename(columns={'datetime': 'ds', 'temperature': 'y'})
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis=dict(title="Temperature (°C)"),
+        yaxis2=dict(title="Precipitation (mm)", overlaying='y', side='right'),
+        title="Temperature & Precipitation Trends",
+        legend=dict(x=0, y=1.1, orientation="h")
+    )
+    st.plotly_chart(fig)
+
+    st.subheader("🤖 AI-Based Forecasts")
+
+    def forecast_ai(dataframe, target_col, label):
+        prophet_df = dataframe[['datetime', target_col]].rename(columns={'datetime': 'ds', target_col: 'y'})
         model = Prophet(daily_seasonality=True)
         model.fit(prophet_df)
         future = model.make_future_dataframe(periods=3, freq='D')
         forecast = model.predict(future)
-
-        st.subheader("AI Temperature Forecast")
-        fig = px.line(forecast, x='ds', y='yhat', title="Predicted Temperatures")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], name=f"{label} Forecast"))
+        fig.add_trace(go.Scatter(x=prophet_df['ds'], y=prophet_df['y'], mode='markers', name='Observed'))
+        fig.update_layout(title=f"{label} Prediction (AI)",
+                          xaxis_title="Date",
+                          yaxis_title=label)
         st.plotly_chart(fig)
+        return forecast
 
-    elif view == "Admin1 Map":
-        st.subheader(f"{selected_city} Region Map (Mocked)")
-        if selected_city == "Beirut":
-            fig = px.choropleth_mapbox(
-                df.groupby("city").mean().reset_index(),
-                geojson=lebanon_geo,
-                locations="city",
-                featureidkey="properties.name",
-                color="temperature",
-                mapbox_style="carto-positron",
-                zoom=10, center={"lat": 33.89, "lon": 35.5}
-            )
-            st.plotly_chart(fig)
-        elif selected_city == "Amman":
-            fig = px.choropleth_mapbox(
-                df.groupby("city").mean().reset_index(),
-                geojson=jordan_geo,
-                locations="city",
-                featureidkey="properties.name",
-                color="temperature",
-                mapbox_style="carto-positron",
-                zoom=10, center={"lat": 31.96, "lon": 35.87}
-            )
-            st.plotly_chart(fig)
+    forecast_ai(df, 'temperature', 'Temperature')
+    forecast_ai(df, 'precipitation', 'Precipitation')
 
-# Placeholder: Scheduled daily updates (e.g., GitHub Actions or Firebase sync)
-st.markdown("🔄 Daily update automation will be configured via scheduler.")
+    st.subheader("📥 Download Forecast Data")
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button("Download CSV", data=csv, file_name=f"{selected_city}_forecast.csv", mime="text/csv")
+
+# Placeholder for future admin1-level map integration
+st.markdown("🗺 Admin1-level regional weather maps coming soon...")
