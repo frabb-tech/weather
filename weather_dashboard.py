@@ -16,7 +16,8 @@ CITIES = {
     "Ankara": "TR",
     "Yerevan": "AM",
     "Sarajevo": "BA",
-    "Ramallah": "PS"
+    "Ramallah": "PS",
+    "Nicosia": "CY"
 }
 
 @st.cache_data
